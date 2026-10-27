@@ -158,8 +158,8 @@ return hit.matched_terms >= needed and hit.coverage >= retrieval.min_term_covera
 
 The score falls with age and disuse. A hit that names most of the question's words is still the answer, however
 old: a decision from last month must not give way to this week's unrelated work. Unrelated questions share at most
-one generic word of five or more; related ones share at least one in three. `mem_search` with nothing confident
-says `No matching memories.` rather than guessing.
+one generic word of five or more; related ones share at least one in three. With nothing confident, `mem_search`
+marks what it found as weak candidates instead of presenting them as answers ([below](#the-five-mcp-tools)).
 
 ### A worked example
 
