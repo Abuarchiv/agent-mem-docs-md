@@ -9,7 +9,6 @@ reminds every agent of what matters at the right moment. Nothing leaves your com
 SQLite file, and you can browse it at `http://localhost:37778`.
 
 ## Quick start
-
 1. Install the command (macOS, Linux, Windows):
 
    ```sh
@@ -29,16 +28,13 @@ SQLite file, and you can browse it at `http://localhost:37778`.
    ```
 
 4. Start a session in any repository and send one request. The next session begins with what the first one learned.
-
 ## What you get
-
 - **A briefing at every start:** Facts, decisions, failed attempts, preferences and the last session's open steps, ranked by what has proven useful, within a token budget.
 - **The right memory at the right moment:** Matching memories for a prompt, only when the match is strong. The history of a file before it is read or edited. How an error was fixed last time.
 - **Corrections that stick:** Say "use pnpm instead of npm" twice and every agent is told before it runs `npm`. Switch the rule on and the command is blocked.
 - **One memory for every agent:** What Claude Code learned is there for Codex, Copilot and OpenCode, and the other way round.
-- **Facts without an API key:** The CLI you already pay for writes the facts in the background: Claude Haiku for Claude Code, GPT-6-Luna for Codex and Copilot. A request never leaves its vendor.
+- **Facts without an API key:** The CLI you already pay for writes the facts in the background: Claude Haiku for Claude Code, GPT-6-Luna for Codex and Copilot, the free Big Pickle for OpenCode. A request never leaves its vendor.
 - **Local and private:** No telemetry, no cloud, no server. Secrets are removed before storage; `<private>` text is never stored.
-
 ## How it works
 
 ![Agents call agent-mem's hook, which records into memory.db and returns context; background processes write facts with the agents' CLIs; MCP tools, the viewer and the CLI read the memory.](assets/diagrams/system-overview.svg)
@@ -62,7 +58,7 @@ Read [Architecture Overview](docs/architecture/overview.md) for the full picture
 
 | | |
 | --- | --- |
-| Agents | Claude Code 2.x, Codex CLI 0.x, GitHub Copilot CLI 1.0.96 and the Copilot app 1.1.29 (macOS), OpenCode 1.18 |
+| Agents | Claude Code 2.x, Codex CLI 0.x, GitHub Copilot CLI 1.0.103, the Copilot app 1.1.29 (macOS), Copilot Chat in VS Code 1.142, OpenCode 1.19 and 2.2 |
 | Python | 3.11 to 3.14 |
 | OS | macOS (arm64; Intel without search by meaning), Linux, Windows |
 | Install size | about 10 MB, plus 220 MB for search by meaning, plus about 400 MB for background facts |
@@ -72,7 +68,6 @@ Read [Architecture Overview](docs/architecture/overview.md) for the full picture
 > that name would not be this one.
 
 ## Next steps
-
 - [Installation](docs/getting-started/installation.md): Install options, sizes, what setup writes.
 - [Your first session](docs/getting-started/first-session.md): What you see and what the agent gets.
 - [Agents](docs/agents/claude-code.md): Claude Code, Codex, Copilot and OpenCode in detail.

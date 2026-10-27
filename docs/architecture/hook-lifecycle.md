@@ -61,7 +61,6 @@ Field names are looked up tolerantly. `session_id`, `sessionId` and `SessionId` 
 <sub>[Excalidraw scene](../../assets/diagrams/seq-session-start.excalidraw)</sub>
 
 ### Input
-
 **Claude Code**
 
 ```json
@@ -144,7 +143,6 @@ next system prompt (`experimental.chat.system.transform`).
    the facts model and failures.
 
 ### Output
-
 **Claude Code / Codex**
 
 ```json
@@ -188,7 +186,6 @@ before the rest is parsed (checked with CLI 1.0.96).
 <sub>[Excalidraw scene](../../assets/diagrams/seq-prompt.excalidraw)</sub>
 
 ### Input
-
 **Claude Code / Codex**
 
 ```json
@@ -256,7 +253,6 @@ hook prints nothing at all, and the terminal stays quiet either way.
 <sub>[Excalidraw scene](../../assets/diagrams/seq-pre-tool.excalidraw)</sub>
 
 ### Input
-
 **Claude Code / Codex**
 
 ```json
@@ -299,7 +295,6 @@ Codex may send `tool_call_id` instead of `tool_use_id`.
    Reading records `shown`; editing records `warned`.
 
 ### Output
-
 **Claude Code / Codex**
 
 ```json title="note (rule suggested)"
@@ -333,7 +328,6 @@ The plugin throws `new Error(deny)`, which stops the tool and shows the reason t
 <sub>[Excalidraw scene](../../assets/diagrams/seq-post-tool.excalidraw)</sub>
 
 ### Input
-
 **Claude Code (success)**
 
 ```json
@@ -429,7 +423,6 @@ is where the briefing's "Commands that worked here" comes from. Only the reusabl
 <sub>[Excalidraw scene](../../assets/diagrams/seq-stop.excalidraw)</sub>
 
 ### Input
-
 **Claude Code / Codex**
 
 ```json

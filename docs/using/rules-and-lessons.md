@@ -3,7 +3,6 @@
 How corrections become rules that warn or block, and how mistakes become lessons for next time.
 
 ## Rules from your corrections
-
 1. You type a correction, for example "use pnpm instead of npm". agent-mem records a **suggested rule** R1: avoid
    `npm`, prefer `pnpm`.
 2. Before the next command that runs `npm`, every agent gets a note:
@@ -18,7 +17,6 @@ How corrections become rules that warn or block, and how mistakes become lessons
 
    Now `npm install` is denied before it runs, and the agent reads why:
    `agent-mem rule R1: Use pnpm instead of npm (you were corrected 2x).`
-
 Recognized forms (English and German): `use X instead of Y`, `nutze / verwende / nimm X statt Y`, `X statt Y`,
 `nicht X benutzen, sondern Y`, `never use X`, `nie X`, `kein X`. A rule the observer extracts counts only if both
 tool names appear in what you typed, not just in a file the agent read.

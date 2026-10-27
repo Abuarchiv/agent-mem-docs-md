@@ -2,17 +2,18 @@
 
 Every block agent-mem gives an agent, when it gives it, how it is chosen, and the token budget it must fit.
 
-agent-mem gives the agent context at six moments. Each block is plain text in one frame, chosen by rank and cut to
+agent-mem gives the agent context at these moments. Each block is plain text in one frame, chosen by rank and cut to
 a token budget. Nothing is injected when nothing qualifies.
 
 | Moment | Block | Budget key | Default | Chosen by |
 | --- | --- | --- | --- | --- |
-| Session start | [briefing](#the-briefing) | `budgets.session_start` | 8,000 | rank (importance, use, kind), then shown oldest first |
+| Session start | [briefing](#the-briefing) | `budgets.session_start` | 800 | your rules and the last session first, then rank (importance, use) |
 | A prompt | [matching memories](#prompt-hits) | `budgets.prompt` | 2,400 | search, confident hits only |
+| Session start, a prompt | [other agents at work](#other-agents-at-work) | — | one line per session | running sessions of this project and the files they change |
 | Before a tool | [rule note](#warnings) + [file history](#file-history) | `budgets.warning` + `budgets.file_history` | 300 + 1,200 | rules for the command, memories linked to the files |
 | A failed tool | [fix hint](#fix-hint) | `budgets.failure` | 400 | recipe for the error signature |
 | After compaction | [compact block](#after-compaction) | `budgets.compact` | 4,000 | this session's goal, decisions, open errors, files |
-| A subagent starts | briefing | `budgets.session_start` | 8,000 | as at session start |
+| A subagent starts | briefing | `budgets.session_start` | 800 | as at session start |
 
 ## The frame
 
@@ -66,7 +67,7 @@ Before a tool, the warning and the file history go out in one output: the histor
 
 ## The briefing
 
-**When:** `SessionStart` (not `compact`), `SubagentStart`. **Budget:** `budgets.session_start` (8,000), capped per
+**When:** `SessionStart` (not `compact`), `SubagentStart`. **Budget:** `budgets.session_start` (800), capped per
 agent.
 
 ```text title="a real briefing (shortened)"
@@ -87,31 +88,54 @@ Current: 2026-10-13 21:52 CEST; (+N tok) after an entry = more detail via mem_ge
 
 | # | Section | Source | Slots at scale 1 |
 | --- | --- | --- | --- |
-| 1 | `Current:` line | the clock, with time zone | 1 |
+| 1 | `Current:` line | the clock, with time zone; for Copilot also a line that names `mem_search` and `mem_get` | 1–2 |
 | 2 | health warnings (`! agent-mem: claude hooks failing …`, a spool over 1,000 events) | `health`, `spool/` | 1 |
 | 3 | commands that worked | `profile` rows `cmd:test`, `cmd:build`, `cmd:lint`, `cmd:install`, most used first | 1 line, up to 4 |
-| 4 | memories | `decision`, `dead_end`, `preference`, `correction`, `summary`, `fact` | 5 |
-| 5 | lessons | `lesson` | 3 |
-| 6 | the other agent's notes | `native_note` (see below) | 2 |
+| 4 | your rules | `preference`, `correction` | 3 |
+| 5 | last session | its observer title with `Done` and `Next steps`, or its last two requests with answers | 1–3 |
+| 6 | open errors | a failing test, build, lint or install from another session in the last 72 hours | 2 |
 | 7 | focus | the last session's `next_steps` used as a search query; memories only | 2 |
-| 8 | open errors | a failing test, build, lint or install from another session in the last 72 hours | 2 |
-| 9 | last session | its observer title with `Done` and `Next steps`, or its last two requests with answers | 1–3 |
+| 8 | memories | `decision`, `dead_end`, `summary`, `fact` | 4 |
+| 9 | lessons | `lesson` | 2 |
 | 10 | work log | titles of recent turns of this project | 10 |
+
+The order is what the next request needs first, since the budget cuts the end: your rules, where the last session
+stopped and what it left open. Facts, lessons and the work log fill what is left. Held out on real data, a start
+block of 2,400 tokens held 4 of the 71 older entries agents used in the days after, one of 800 the same; two thirds
+of those entries came from a `mem_search`, not the start block. The other agent's notes come only with a request
+they fit: 1,105 shown at session starts went unused.
 
 **Ranking of memories:** activation × briefing factor × `(0.7 + 0.3 · importance)` × kind priority (preference
 1.3, dead end 1.25, decision 1.2, correction and lesson 1.1, others 1.0), out of the newest 200. The chosen ones are
 then **printed oldest first**, so an update reads as an update.
 
-**Filling the budget:** the slot counts start at the numbers above and **double** (up to four rounds) while the
-rendered block uses less than 85% of the budget and new lines keep coming. With the default 8,000 tokens a large
-project fills most of it; a new one gets a short block. `budgets.session_start: 2000` gives about a quarter.
+**Filling the budget:** the slot counts are the numbers above per 1,000 tokens of budget (at least once) and
+**double** (up to four rounds) while the rendered block uses less than 85% of the budget and new lines keep
+coming. `budgets.session_start: 4000` allows a block five times as long as the default.
 
 **Never shown at session start:**
 
 - memories retired by a newer one (`invalid_at` set)
 - memories from this session's own turns (Copilot sends the first prompt before the session start)
-- the agent's **own** native notes: Claude Code already loads its `memory/*.md`, Codex its rollout summaries. Each
-  gets only the other one's notes.
+- native notes: the agent's **own** it loads itself (Claude Code its `memory/*.md`, Codex its rollout summaries);
+  another agent's come with a prompt they match
+
+## Other agents at work
+
+**When:** session start and every prompt, if another session of this project is running. **Budget:** none; one line
+per session.
+
+```text
+<agent-mem>
+! Another agent (codex, active 3 min ago, on "add divide to calc") is changing `calc.py`, `test_calc.py`. Check with the user before editing the same files.
+</agent-mem>
+```
+
+A session counts as running while a request of it is open and its last event is under 20 minutes old. Named are
+the files its requests changed in the last three hours that still exist, up to six. Each session is named again
+only once it changed another file. On 2026-10-26 five sessions worked on the same request at once, unaware of each
+other, and changed the same files twice over. The block is not under the usual "data, not instructions" header:
+it is what happens now, outside this session.
 
 ## Prompt hits
 
@@ -142,6 +166,24 @@ No confident hit, no block. The terminal stays quiet either way.
 ```
 
 An **enabled** rule does not inject; it denies the tool call. See [Learning & Ranking](learning-and-ranking.md#corrections-become-rules).
+
+Your own preferences and corrections that name the file about to be edited or the command about to run come here
+too, once per session each, at most three:
+
+```text
+- Rule [M31] for `install.ps1`: In install.ps1 no `exit`, use throw
+```
+
+In the briefing they are one line among many; here they come when they apply. A name must match whole
+(`inject.py` is not `test_inject.py`), a command needs two words (`uv run pytest`, not `ls`). Simulated on real
+sessions this fires about twice per session.
+
+Before an edit, a file that another running agent of the project changed in the last three hours is named, once
+per file and session, in this checkout or another worktree:
+
+```text
+! Another agent (codex, active 4 min ago) changed `src/calc.py` too. Check with the user before editing it, or the two changes collide.
+```
 
 ## File history
 
@@ -176,7 +218,8 @@ Earlier memories about this file (history, not its current contents):
 ## After compaction
 
 **When:** `SessionStart` with `source: "compact"` (Claude Code, Codex), and the `session.compacting` hook on
-OpenCode, which adds the block to the compaction prompt itself. **Budget:** `budgets.compact` (4,000).
+OpenCode, which adds the block to the compaction prompt itself. Copilot ignores context before compaction and starts
+no session after it, so there the block comes with the next prompt. **Budget:** `budgets.compact` (4,000).
 
 ```text
 - Session goal (T41): Add a subtract function to calc.py and run the tests
@@ -223,7 +266,6 @@ More: agent-mem show T42 · everything in the browser: http://localhost:37778/
 | Glyphs | ◆ decision · ✗ failed attempt · ↺ correction · ★ preference · ✓ lesson · § rule · ● fact · ≡ summary · ✎ agent note · ! unresolved; work: ● bugfix, ◆ feature, ✓ change, ○ discovery, ⚖ decision, ? question |
 | Savings | measured agent work behind the loaded entries minus their reading cost, only when measured work exists ([Token Accounting](token-accounting.md)) |
 | Colour | Claude Code only, unless `NO_COLOR` is set; Codex and Copilot get plain text |
-
 **Claude Code**
 `systemMessage`, painted with ANSI colours.
 **Codex**
@@ -232,7 +274,6 @@ More: agent-mem show T42 · everything in the browser: http://localhost:37778/
 A `{"type": "progress", "message": "…"}` line before the JSON, shown in the timeline. Session end: a short summary.
 **OpenCode**
 No panel; OpenCode has no channel for it.
-
 When a session ends, Claude Code and Copilot also show one line: `agent-mem session saved · 2 requests · 1 file ·
 facts are added in the background` (`· N ended with an error` when that happened).
 

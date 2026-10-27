@@ -33,12 +33,10 @@ The answer is the hook system every one of these agents ships: an external comma
 and an optional answer as JSON on stdout.
 
 ### What the hook systems give us
-
 - **Lifecycle events:** Session start, every prompt, before and after every tool call, the end of each answer, compaction and session end. Subagents get their own start and stop.
 - **Context injection:** Claude Code and Codex take `additionalContext` at session start, on a prompt and around tools. Copilot reads `additionalContext` from its hook output. OpenCode gets it through the plugin, into the next system prompt.
 - **Blocking:** Before a tool runs, a hook can deny it with a reason the model reads. agent-mem uses this only for a rule you switched on yourself.
 - **A line for you:** Claude Code and Codex show `systemMessage` in the terminal. Copilot shows a `{"type":"progress"}` line in its timeline. agent-mem uses this for the session panel and for failures.
-
 ## How every hook is launched
 
 `agent-mem setup <harness> --write` copies the hook definitions that ship inside the package (`plugins/<harness>/`)
@@ -61,7 +59,6 @@ delete your settings.
 
 Your own hooks stay. Setup removes only hook groups whose every command contains `agent-mem`, then appends the
 current ones. `agent-mem uninstall <harness>` removes the same groups and leaves data, config and models alone.
-
 **Claude Code**
 
 ```json title="~/.claude/settings.json (excerpt, path shortened)"
@@ -167,7 +164,8 @@ and Copilot a subagent's start (`SubagentStart`, `subagentStart`) gets the same 
 **What it does:**
 1. Resolves the project from `cwd` (git remote, else repository root, worktrees shared with their repository).
 2. Upserts the session `<harness>:<session_id>` and stores the event.
-3. Builds the briefing, ranked by importance and use rather than age, within `budgets.session_start` (8,000 tokens).
+3. Builds the briefing (your rules and the last session first, then by importance and use) within
+   `budgets.session_start` (800 tokens).
    See [Context Injection](context-injection.md).
 4. Starts `agent-mem serve` if nothing answers on port 37778 (a refused loopback connection costs well under a
    millisecond).
@@ -246,7 +244,6 @@ deletes `guards.json`, so the next call looks again.
    1,500 bytes gets no history, because reading it costs about as much.
 
 **Output** for a suggested rule and for an enabled one:
-
 **Suggested (note)**
 
 ```json

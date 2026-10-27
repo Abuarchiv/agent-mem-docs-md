@@ -3,7 +3,6 @@
 How agent-mem connects to Claude Code, what it shows there, and what to know.
 
 ## Connect
-
 **setup --write (recommended)**
 
 ```sh

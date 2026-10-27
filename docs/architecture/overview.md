@@ -59,7 +59,7 @@ session, searchable over MCP and visible in a local viewer. One SQLite file hold
 
 ### Recalling
 
-1. **Session start:** a briefing ranked by importance and use, within 8,000 tokens.
+1. **Session start:** a briefing with your rules and the last session first, within 800 tokens.
 2. **Each prompt:** confident matches only, within 2,400 tokens.
 3. **Before a tool:** rule notes or a block, and the history of the files it touches.
 4. **After a failure:** how this error was fixed before.
@@ -112,7 +112,6 @@ mem0, Qdrant, fastembed or numpy.
 - **Nothing leaves the machine** except model downloads and your agent's own CLI talking to its own provider.
 
 ## Deeper
-
 - [How agent-mem uses hooks](hooks.md): Why hooks, how they are launched, each event, timing, failure modes, debugging.
 - [Hook Lifecycle](hook-lifecycle.md): Payloads and outputs per agent, sequence diagrams, state machines.
 - [Observer Pipeline](observer-pipeline.md): Queue, bundles, providers, extraction, work log, review, graph.

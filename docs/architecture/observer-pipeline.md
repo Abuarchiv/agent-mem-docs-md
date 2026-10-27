@@ -92,14 +92,13 @@ also never mixes projects: a session that moved into a nested project starts a n
 
 ## The provider chain
 
-![Claude Code turns go to claude -p with haiku, Codex turns to codex exec with gpt-6-luna, Copilot turns to copilot -s auto, OpenCode turns only to ollama if configured, else raw.](../../assets/diagrams/provider-chain.svg)
+![Claude Code turns go to claude -p with haiku, Codex turns to codex exec with gpt-6-luna, Copilot turns to copilot -s auto, OpenCode turns to opencode run with the free big-pickle model; Ollama only if added to the providers.](../../assets/diagrams/provider-chain.svg)
 
 <sub>[Excalidraw scene](../../assets/diagrams/provider-chain.excalidraw)</sub>
 
 A turn only goes to the vendor that already saw it. A Claude Code turn goes to Claude, a Codex turn to Codex,
-a Copilot turn to Copilot. Ollama is the one exception, and it is off by default. `observe.cross_vendor: true`
+a Copilot turn to Copilot, an OpenCode turn to OpenCode. Ollama is the one exception, and it is off by default. `observe.cross_vendor: true`
 lets any installed CLI take any turn, in the order of `observe.providers`.
-
 **Claude**
 
 ```bash
@@ -131,6 +130,16 @@ A private `COPILOT_HOME` per call. In yours, every call would be a saved session
 would run your hooks, plugins and MCP servers. `config.json` is copied in for logins kept there. `-s` reads the
 prompt from stdin; `-p` drops prompts over about 30k characters. `auto` with the efficiency tier works on every
 plan, including Free, which refuses fixed models.
+
+**OpenCode**
+
+```bash
+opencode run --standalone --agent plan --model opencode/big-pickle
+```
+
+`observe.opencode_model` sets the model; the default is free. `--standalone` uses a private server, so the run does
+not attach to the shared one, and `--agent plan` keeps it read-only. `AGENT_MEM_INTERNAL=1` makes agent-mem's own
+OpenCode plugin skip the run.
 
 **Ollama**
 

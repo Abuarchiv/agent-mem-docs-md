@@ -7,10 +7,9 @@ Install agent-mem, connect your agents, and check the result.
 - Python 3.11 to 3.14 (uv installs one if needed)
 - [uv](https://docs.astral.sh/uv/) or pipx
 - At least one agent: Claude Code, Codex CLI, GitHub Copilot CLI (or the Copilot app on macOS), OpenCode
-- For background facts: the CLI of the agent, logged in (`claude`, `codex`, `copilot`). Nothing else: no API key.
+- For background facts: the CLI of the agent, logged in (`claude`, `codex`, `copilot`, `opencode`). Nothing else: no API key.
 
 ## Install
-
 **uv (recommended)**
 
 ```sh
@@ -34,6 +33,31 @@ Running it again upgrades.
 irm https://raw.githubusercontent.com/Abuarchiv/agent-mem/main/install.ps1 | iex
 ```
 
+Installs uv and agent-mem like the macOS script. Search by meaning needs the Microsoft Visual C++ runtime; a fresh
+Windows often lacks it, so the script installs it when `msvcp140.dll` or `vcruntime140_1.dll` is missing (Windows
+asks for administrator rights once). Skipped, search by words still works and `agent-mem doctor` names what to
+install. Git for Windows is required (`winget install Git.Git`).
+
+**Docker (macOS, Linux)**
+
+```sh
+curl -LsSf https://raw.githubusercontent.com/Abuarchiv/agent-mem/main/install-docker.sh | sh
+agent-mem login claude    # once per agent that should write facts: claude, codex, copilot, opencode
+```
+
+For a computer with nothing but Docker. Your agents stay where they are; agent-mem runs in a container named
+`agent-mem`. The script builds the image with the agent CLIs it finds (1.5 to 3 GB, a few minutes the first time),
+starts the container (it restarts with Docker), writes a small `agent-mem` command to `~/.local/bin` that runs
+everything in the container, and connects every agent it finds.
+
+- Memory lives in the Docker volume `agent-mem-data`. The container reads your home folder (transcripts, git) but
+  cannot change it.
+- Facts are written by the CLIs inside the container, so log each in once with `agent-mem login <agent>`. Until
+  then requests are recorded and searchable and wait for facts.
+- `agent-mem view` opens http://localhost:37778/; another port: `AGENT_MEM_PORT=37790` before the install line.
+- With Docker closed, hooks end silently and your agent works without memory. Each hook is a `docker exec`: about
+  150 ms per event instead of about 70 ms.
+
 **pipx**
 
 ```sh
@@ -54,6 +78,25 @@ The plugin only registers the hooks and the MCP server. Install the `agent-mem` 
 install` line, and skip `setup --write` (or every hook runs twice). Without the command, every hook fails with
 "command not found".
 
+### Agent in a container (Docker, Dev Containers)
+
+If your agent itself runs in a container, install agent-mem into that image and keep its data on a volume:
+
+```dockerfile
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+USER node
+ENV PATH=/home/node/.local/bin:$PATH AGENT_MEM_DATA_DIR=/home/node/.agent-mem
+RUN uv tool install --python 3.13 "agent-mem[semantic,observer] @ git+https://github.com/Abuarchiv/agent-mem" \
+ && agent-mem setup claude --write
+```
+
+```sh
+docker run -it -v agent-mem-data:/home/node/.agent-mem -v claude-home:/home/node/.claude <your-image>
+```
+
+Log in to the agent inside the container once; agent-mem writes facts through that login. The viewer listens on
+127.0.0.1 inside the container, so open it there.
+
 > [!WARNING]
 > agent-mem is not on PyPI. Never install it by its bare name (`pip install agent-mem`): a package registered there
 > under that name would not be this one.
@@ -72,7 +115,6 @@ Add an extra later with `agent-mem upgrade --extras semantic observer`.
 
 `agent-mem setup all --write` connects every agent it finds on `PATH`. Name one instead of `all` to connect just
 that one. Without `--write` it only prints the steps.
-
 1. **Hooks** with the absolute path of the `agent-mem` command, so sessions started from an editor or a launcher
    with a short `PATH` find it:
    - Claude Code: `~/.claude/settings.json`
@@ -85,7 +127,6 @@ that one. Without `--write` it only prints the steps.
    with `--no-models`.
 4. **The viewer** as a login item, started now: launchd on macOS, a systemd user unit on Linux, the Startup folder
    on Windows.
-
 Every file is written atomically, the previous version is kept as `<file>.agent-mem-backup`, and your own hooks
 stay. A config file that is not valid JSON stops setup with "Nothing was changed".
 

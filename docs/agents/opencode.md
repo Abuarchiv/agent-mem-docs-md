@@ -22,8 +22,28 @@ MCP server to `~/.config/opencode/opencode.json`:
 
 ## The plugin
 
-OpenCode has no command hooks; it loads TypeScript plugins. agent-mem's plugin (typed against
-`@opencode-ai/plugin` 1.18) maps OpenCode's hooks to `agent-mem hook opencode <event>`:
+OpenCode has no command hooks; it loads TypeScript plugins. agent-mem's one file serves both OpenCode lines: OpenCode
+2 calls its `setup` and streams events, OpenCode 1.x (the npm package) loads its default export and calls `server()`.
+Each event goes to `agent-mem hook opencode <event>` as JSON on stdin; the call is killed after 10 seconds, the same
+limit as the other agents' hooks (on Windows one call took 2.3 to 3.2 s under virus scanning). Calls run one after
+another, so a session's row exists before its first prompt is looked up.
+
+### OpenCode 2 (event stream)
+
+| Event | Sends | agent-mem does |
+| --- | --- | --- |
+| first event of a session | `session.start` | new session |
+| `session.inbox.enqueued` (a user item) | `chat.message` with the prompt | new turn |
+| `session.tool.success` / `session.tool.failed` | `tool.after` with name, input, output and exit code (0 or 1) | record, recipes |
+| `session.text.ended` | — | adds to the turn's answer |
+| `session.execution.succeeded` / `failed` / `interrupted` | `session.idle` with the answer | close the turn, start the observer |
+
+OpenCode 2's plugin API has no hook before a tool and none that changes the system prompt, so there agent-mem
+**records only**: no briefing, no matches, no rule notes or deny. The search is still there through the MCP server.
+Each loaded location gets its own plugin instance; events of another location are skipped so a session is recorded
+once.
+
+### OpenCode 1.x (hooks)
 
 | OpenCode hook | Sends | agent-mem does |
 | --- | --- | --- |
@@ -36,23 +56,26 @@ OpenCode has no command hooks; it loads TypeScript plugins. agent-mem's plugin (
 | `experimental.session.compacting` | `session.compacting` | the compact block goes into the compaction prompt |
 | `experimental.chat.system.transform` | — | adds held context to the system prompt of the next call |
 
-Each call spawns the command with the JSON on stdin and kills it after 2 seconds. Any error resolves to "no
-context"; the only error the plugin throws on purpose is an enabled rule. Calls to agent-mem's own tools are
-skipped.
+Any error resolves to "no context"; the only error the plugin throws on purpose is an enabled rule. Calls to
+agent-mem's own tools are skipped.
+
+## Facts
+
+OpenCode requests get facts from `opencode run --standalone --agent plan --model opencode/big-pickle`, a free model
+(`observe.opencode_model`). `--standalone` keeps the run off the shared OpenCode server, `--agent plan` keeps it
+read-only, and agent-mem's own plugin skips it. See [Providers and models](../facts/providers-and-models.md).
 
 ## What OpenCode does not get
 
 - **No panel.** OpenCode has no channel for a message to you.
-- **No facts by default.** No OpenCode CLI is used for extraction. OpenCode requests are saved word for word,
-  unless you add `"ollama"` to `observe.providers` (or set `observe.cross_vendor: true` to let another installed
-  CLI take them).
+- **No context in OpenCode 2** (see above); OpenCode 1.x gets it.
 - **No token accounting.** OpenCode's work per request is not measured.
 
 > [!WARNING]
 > Run OpenCode sessions one at a time per repository. Two at once can collide on OpenCode's own snapshot lock; this is
 > an OpenCode limitation, not agent-mem's.
 
-Tested with OpenCode 1.18.
+Tested with OpenCode 1.19 (npm, install script) and 2.2.
 
 ---
 

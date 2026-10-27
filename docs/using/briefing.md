@@ -13,15 +13,15 @@ does anything. Subagents get one too. After compaction a shorter block takes its
 | Problems to act on | `! agent-mem: codex hooks failing (…). Run agent-mem doctor.` | only when something is broken |
 | Commands that worked | `test: uv run pytest -q; lint: uv run ruff check src` | successful test, build, lint and install commands |
 | Preferences and rules | `Use pnpm instead of npm (corrected 2x)` | your corrections |
+| Last session | its title, what was done, what is next | the observer's session summary |
+| Still open | `[unresolved] uv run pytest failed: …` | a test or build that kept failing in the last 72 hours |
+| Focus | memories that match the last session's open steps | a search with "next steps" as the query |
 | Decisions, failed attempts, facts | `[M2 · decision] calc.py must stay free of third-party imports` | the observer, your statements, reverts |
 | Lessons | `When a new function is added to calc.py, export it in __all__ …` | mistakes and their fixes |
-| The other agent's notes | a Claude Code note, shown to Codex | notes the agents keep themselves |
-| Focus | memories that match the last session's open steps | a search with "next steps" as the query |
-| Still open | `[unresolved] uv run pytest failed: …` | a test or build that kept failing in the last 72 hours |
-| Last session | its title, what was done, what is next | the observer's session summary |
 | Recent work | `[T41 · work, bugfix] Fixed missing subtract import in calc.py` | titles of recent requests |
 
-Entries are chosen by **importance and use, not by age**. A preference you stated twice ranks above a fact nobody
+Your rules and where the last session stopped come first; the rest is chosen by **importance and use, not by
+age**. A preference you stated twice ranks above a fact nobody
 opened in weeks, and a memory shown at many session starts that the agent never used makes room for something
 else. The chosen entries are then printed oldest first, so a later entry reads as an update of an earlier one. The
 agent is told that newer wins when two disagree.
@@ -33,15 +33,16 @@ which model writes facts, and where to look further. See [the terminal panel](..
 
 ## Size
 
-The briefing fills up to `budgets.session_start`, **8,000 tokens** by default. A new project gets a short block, a
-busy one gets close to the budget. Claude Code receives at most 2,400 tokens per block and Codex 7,800, so in
-practice those limits apply there.
+The briefing fills up to `budgets.session_start`, **800 tokens** by default: what the next request needs first.
+The rest comes with each request (matching memories) or when the agent searches with `mem_search`; on real data a
+larger start block held no more of the entries agents went on to use. Claude Code receives at most 2,400 tokens per
+block and Codex 7,800, so a larger budget is capped there.
 
 ```json title="config.json"
-{ "budgets": { "session_start": 2000 } }
+{ "budgets": { "session_start": 4000 } }
 ```
 
-About a quarter of the default. `0` turns the briefing off; the panel then only shows the counts.
+Five times the default. `0` turns the briefing off; the panel then only shows the counts.
 
 ## Opening an entry
 

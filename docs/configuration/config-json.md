@@ -8,7 +8,7 @@ optional. Every key you leave out keeps its default, and you only write the keys
 ```json title="config.json"
 {
   "budgets": { "session_start": 4000 },
-  "observe": { "providers": ["claude", "codex", "copilot", "ollama"] },
+  "observe": { "providers": ["opencode", "claude", "codex", "copilot", "ollama"] },
   "viewer": { "port": 37800 }
 }
 ```
@@ -56,7 +56,7 @@ capped by what the agent passes in one piece ([per-agent caps](../architecture/c
 
 | Key | Default | Range | Block |
 | --- | --- | --- | --- |
-| `budgets.session_start` | `8000` | 0–200,000 | the briefing at session start and for subagents |
+| `budgets.session_start` | `800` | 0–200,000 | the briefing at session start and for subagents |
 | `budgets.prompt` | `2400` | 0–100,000 | matching memories for a prompt |
 | `budgets.failure` | `400` | 0–20,000 | the fix hint after a failed command |
 | `budgets.warning` | `300` | 0–20,000 | a rule note before a tool |
@@ -74,7 +74,7 @@ capped by what the agent passes in one piece ([per-agent caps](../architecture/c
 | `retrieval.max_per_session` | `3` | 1–1,000 | turns per session in one result list |
 | `retrieval.rrf_k` | `60` | 1–1,000 | rank fusion constant; larger flattens differences between ranks |
 | `retrieval.current_project_boost` | `1.2` | ≥ 0 | multiplier for hits from the current project |
-| `retrieval.min_vector_score` | `0.3` | 0–1 | cosine floor for meaning-based candidates (calibrated for MiniLM) |
+| `retrieval.min_vector_score` | `0.45` | 0–1 | cosine floor for meaning-based candidates (calibrated for MiniLM) |
 
 Lower `inject_min_score` and `min_term_coverage` for more context and more noise; raise them for less. See
 [Search Architecture](../architecture/search.md).
@@ -126,11 +126,12 @@ The background fact writer; needs the `[observer]` extra. See [Observer Pipeline
 | Key | Default | Range | Effect |
 | --- | --- | --- | --- |
 | `observe.enabled` | `true` | bool | `false`: no model calls at all; requests are still recorded and searchable, turns are not queued |
-| `observe.providers` | `["claude", "codex", "copilot"]` | `claude`, `codex`, `copilot`, `ollama` | stages that may write facts, in order |
+| `observe.providers` | `["opencode", "claude", "codex", "copilot"]` | `opencode`, `claude`, `codex`, `copilot`, `ollama` | stages that may write facts, in order |
 | `observe.cross_vendor` | `false` | bool | `true`: any installed CLI may take any agent's turns; `false`: a turn only goes to its own vendor (and Ollama) |
 | `observe.claude_model` | `"haiku"` | string | `claude -p --model …` |
 | `observe.codex_model` | `"gpt-6-luna"` | string | `codex exec -m …` (low reasoning effort) |
 | `observe.copilot_model` | `"auto"` | string | `copilot -s --model …`; `auto` adds `--auto-tier efficiency` |
+| `observe.opencode_model` | `"opencode/big-pickle"` | string | `opencode run --model …`, free; for OpenCode turns |
 | `observe.ollama_model` | `"qwen3.5:4b-mlx"` | string | Ollama model, when `ollama` is in `providers` |
 | `observe.entity_model` | `"en_core_web_sm"` | spaCy model name | topic links for facts; use the language of your facts (`de_core_news_sm`), then `agent-mem models install` |
 | `observe.daily_limit` | `300` | ≥ 0 | model calls per UTC day; over it, turns wait until midnight UTC (Ollama is not limited) |
@@ -163,18 +164,18 @@ the CLI's own default.
   "exclude_globs": [".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx", "id_rsa*", "id_ed25519*", "id_ecdsa*",
                     ".npmrc", ".netrc", ".pypirc", "secrets/**", "**/secrets/**", "*.kdbx", "credentials*"],
   "excluded_projects": [],
-  "budgets": {"session_start": 8000, "prompt": 2400, "failure": 400, "warning": 300, "file_history": 1200, "compact": 4000},
+  "budgets": {"session_start": 800, "prompt": 2400, "failure": 400, "warning": 300, "file_history": 1200, "compact": 4000},
   "retrieval": {"inject_min_score": 0.35, "min_term_coverage": 0.5, "max_per_session": 3, "rrf_k": 60,
-                "current_project_boost": 1.2, "min_vector_score": 0.3},
+                "current_project_boost": 1.2, "min_vector_score": 0.45},
   "retention": {"payload_days": 30, "access_days": 180, "max_db_mb": 1024, "stale_turn_minutes": 30},
   "limits": {"prompt_chars": 16000, "answer_chars": 16000, "tool_output_chars": 8000, "tool_input_chars": 4000,
              "stdin_bytes": 4194304},
   "rules": {"auto_enable": false, "min_corrections": 2, "expire_days": 90},
   "semantic": {"enabled": true, "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
                "batch_size": 32, "duplicate_min_cosine": 0.9},
-  "observe": {"enabled": true, "providers": ["claude", "codex", "copilot"], "cross_vendor": false,
+  "observe": {"enabled": true, "providers": ["opencode", "claude", "codex", "copilot"], "cross_vendor": false,
               "claude_model": "haiku", "codex_model": "gpt-6-luna", "copilot_model": "auto",
-              "ollama_model": "qwen3.5:4b-mlx", "entity_model": "en_core_web_sm", "daily_limit": 300,
+              "opencode_model": "opencode/big-pickle", "ollama_model": "qwen3.5:4b-mlx", "entity_model": "en_core_web_sm", "daily_limit": 300,
               "idle_seconds": 90, "lease_seconds": 900, "bundle_turns": 5, "bundle_tokens": 20000,
               "tool_output_chars": 1200, "turn_tool_chars": 12000, "pause_minutes": 60},
   "viewer": {"enabled": true, "port": 37778, "refresh_seconds": 10}

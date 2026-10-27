@@ -3,20 +3,20 @@
 Hybrid retrieval over SQLite (FTS5, vectors, graph), the five MCP tools, and why agent-mem would rather say nothing than something weak.
 
 Everything agent-mem recalls comes from one search over SQLite. Hooks, the MCP server and the CLI all use it.
-It mixes three ways of finding candidates, re-scores them with what agent-mem learned about each memory, and
+It mixes several ways of finding candidates, re-scores them with what agent-mem learned about each memory, and
 **abstains** when nothing matches confidently.
 
 ## Overview
 
 | Path | Used by | Candidates | Dependencies |
 | --- | --- | --- | --- |
-| Lexical | hooks (prompt, briefing focus) | FTS5 + graph ties from SQL | standard library only |
-| Full | MCP server, `agent-mem search` | FTS5 + vectors + time window + Personalized PageRank | numpy, fastembed (`[semantic]` extra) |
+| Lexical | hooks (prompt, briefing focus) | FTS5, file and code names, graph ties from SQL | standard library only |
+| Full | MCP server, `agent-mem search` | the lexical ones + tool outputs + vectors + time window + Personalized PageRank | numpy, fastembed (`[semantic]` extra) |
 
 Both end in the same function, `memory/search.py search()`, with the same scoring. The full path only adds
 candidates.
 
-![Search pipeline: question to query terms, four candidate sources, RRF fusion, re-scoring, ordering by coverage and graph tie, per-session cap and the abstention gate.](../../assets/diagrams/search-pipeline.svg)
+![Search pipeline: question to query terms, the candidate sources, weighted RRF fusion, re-scoring, ordering by coverage and graph tie, per-session cap and the abstention gate.](../../assets/diagrams/search-pipeline.svg)
 
 <sub>memory/search.py and memory/semantic.py Retriever · [Excalidraw scene](../../assets/diagrams/search-pipeline.excalidraw)</sub>
 
@@ -75,22 +75,32 @@ The time words are then removed from the query text.
 | Source | How | Limit |
 | --- | --- | --- |
 | `fts` | `search_fts MATCH '"subtract" OR "calc" OR "test"'`, ordered by `bm25` | 60 owners |
-| `vector` | cosine of the query embedding against every vector in scope, kept at or above `retrieval.min_vector_score` (0.3) | 60 |
+| `name` | a file or identifier name of the question (`006_work_tokens.sql`, `_clean_json`, `core/db`), also without its extension; skipped when more than 25 entries name it | 3 names |
+| `output` | `mem_search` and the CLI only: turns whose **tool output** names such a name, with the 400 characters around it as the passage; web output stays out; skipped above 25 turns | 3 names |
+| `vector` | cosine of the query embedding against every vector in scope, kept at or above `retrieval.min_vector_score` (0.45) | 60 |
 | `time` | turns started inside the window | 40 |
 | graph tie | entities named in the query (exact key or file name: strength 1.0; a word inside a path: 0.3), spread by Personalized PageRank over Hebbian edges, owners linked to them | 200 |
 
-Terms are quoted for FTS5 with `"` doubled, so a query can never inject FTS syntax. Graph candidates do not form a
-list of their own in the fusion: they would outvote exact matches with whatever touched a named file last. The
-graph only **reorders** what text and vectors found.
+Terms are quoted for FTS5 with `"` doubled, so a query can never inject FTS syntax. A name needs a letter: a
+version such as `0.162` is in every banner of its tool. In BM25 a long answer that names the asked file sank behind
+dozens of shorter texts with the question's common words; the `name` list brings it back.
+
+Graph candidates do not form a list of their own in the fusion: they would outvote exact matches with whatever
+touched a named file last. The graph only **reorders** what the other lists found.
 
 ### 5. Fusion and score
 
-Reciprocal rank fusion over the non-empty lists, normalized to 0–1:
+Weighted reciprocal rank fusion over the non-empty lists, normalized to 0–1:
 
 ```text
-rrf(owner)  = Σ over lists  1 / (k + rank + 1)                     k = retrieval.rrf_k = 60
-rrf_norm    = rrf / (number of non-empty lists / (k + 1))
+rrf(owner)  = Σ over lists  weight / (k + rank + 1)        k = retrieval.rrf_k = 60; weight 0.5 for vector, else 1
+rrf_norm    = rrf / (counted lists / (k + 1))             counted: non-empty lists except name and output
 ```
+
+A vector hit counts half: at full weight loosely related facts pushed the turn that names the asked file or command
+out of the top five (real coding questions: 34 of 56 found with vectors, 36 without; at half weight 36, plus two
+paraphrased questions words alone miss). `name` and `output` add to a hit's score but do not lower everyone
+else's: counted, they would push every other hit below the gate whenever a tool happened to print that name.
 
 Then each hit is re-scored with what agent-mem learned about it:
 
@@ -110,13 +120,24 @@ score = rrf_norm
 The score decides **whether** a hit is shown. The order is decided separately:
 
 ```text
-order = score × (0.5 + 0.5 · coverage) × (1 + 0.3 · tie)
+order = score × (0.5 + 0.5 · (coverage + weighted coverage) / 2) × (1 + 0.3 · tie)
 ```
 
 `coverage` is the share of query terms found in the hit. For a turn that is its request, the first 600 characters
 of its answer, its files and errors; command lines are left out because their paths match almost anything. For a
-memory it is the first 800 characters: a long session summary from another agent contains nearly any word.
+memory it is the first 800 characters: a long session summary from another agent contains nearly any word. A long
+compound (12 letters or more) also matches by its first 7: `installationsskripte` finds `install`.
+
+`weighted coverage` counts each term by its rarity among the candidates (inverse document frequency). In the
+agent-mem project "agent" and "mem" are in nearly every entry; without the weights an entry that named only the
+project tied with the one that named the rare word asked for.
+
 `tie` (0 to 1) is how strongly the graph ties the hit to the files and commands the question names.
+
+`mem_search` also judges a long answer by its **best stretch**: a 360-character window that names at least three
+query terms and more than the opening does becomes the hit's passage. A report's opening says what was done; the
+detail asked for is often pages further down. The prompt hook keeps judging the opening, since a passage per hit grew
+every prompt's context by a third.
 
 Then at most `retrieval.max_per_session` (3) turns per session are kept, so one long session cannot fill the
 list. Facts are not capped; a day of work leaves dozens.
@@ -126,16 +147,19 @@ list. Facts are not capped; a day of work leaves dozens.
 Automatic injection and `mem_search` only show **confident** hits:
 
 ```python title="memory/search.py confident()"
-if hit.score < retrieval.inject_min_score:            # 0.35
+named = hit.matched_terms >= 3 and hit.coverage >= 0.6   # names most of the question
+if hit.score < retrieval.inject_min_score and not named: # 0.35
     return False
 if "vector" in hit.sources and hit.matched_terms >= 1 and hit.coverage >= 1/3:
-    return True                                        # meaning match that still shares a third of the words
+    return True                                          # meaning match that still shares a third of the words
 needed = 1 if len(terms) <= 1 else 2
 return hit.matched_terms >= needed and hit.coverage >= retrieval.min_term_coverage   # 0.5
 ```
 
-Unrelated questions share at most one generic word of five or more; related ones share at least one in three.
-`mem_search` with nothing confident says `No matching memories.` rather than guessing.
+The score falls with age and disuse. A hit that names most of the question's words is still the answer, however
+old: a decision from last month must not give way to this week's unrelated work. Unrelated questions share at most
+one generic word of five or more; related ones share at least one in three. `mem_search` with nothing confident
+says `No matching memories.` rather than guessing.
 
 ### A worked example
 
@@ -188,7 +212,6 @@ Ids are `T<n>` for a turn (one request and everything done for it) and `M<n>` fo
 ![Three layers: mem_search returns ids and titles, mem_timeline shows the session around an id, mem_get returns full details for up to ten ids.](../../assets/diagrams/progressive-disclosure.svg)
 
 <sub>[Excalidraw scene](../../assets/diagrams/progressive-disclosure.excalidraw)</sub>
-
 **mem_search**
 
 ```python
@@ -310,7 +333,7 @@ The server finds its project from `CLAUDE_PROJECT_DIR`, then `AGENT_MEM_PROJECT_
 | `retrieval.max_per_session` | 3 | turns per session in one result list |
 | `retrieval.rrf_k` | 60 | RRF constant; larger flattens rank differences |
 | `retrieval.current_project_boost` | 1.2 | multiplier for hits from the current project |
-| `retrieval.min_vector_score` | 0.3 | cosine floor for vector candidates (calibrated for MiniLM) |
+| `retrieval.min_vector_score` | 0.45 | cosine floor for vector candidates (calibrated for MiniLM) |
 | `semantic.enabled` / `semantic.model` | true / MiniLM-L12-v2 | vectors for the full path |
 
 ## Troubleshooting

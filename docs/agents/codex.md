@@ -3,7 +3,6 @@
 How agent-mem connects to the Codex CLI, the trust step, and what Codex shows.
 
 ## Connect
-
 1. Write hooks and the MCP server:
 
    ```sh
@@ -20,7 +19,6 @@ How agent-mem connects to the Codex CLI, the trust step, and what Codex shows.
 
 2. **Trust the hooks once.** Start `codex`, run `/hooks` and trust the agent-mem hooks. Codex requires this review
    for new and changed hooks, and asks again after an upgrade that changed them.
-
 `CODEX_HOME` moves `~/.codex`. A Codex plugin also exists (`codex plugin marketplace add Abuarchiv/agent-mem`,
 `codex plugin add agent-mem@agent-mem`); it needs the same trust step.
 

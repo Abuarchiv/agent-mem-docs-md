@@ -15,6 +15,10 @@ A flag counts as set when its value is `1`, `true`, `yes` or `on` (any case).
 | `AGENT_MEM_PROJECT_DIR` | MCP server | the project to search in, when the agent does not set `CLAUDE_PROJECT_DIR` |
 | `AGENT_MEM_DEBUG` | CLI | print the full traceback instead of a one-line explanation |
 | `AGENT_MEM_FAKE_LLM` | observer, tests | path of a JSON list of canned model answers for the `fake` provider |
+| `AGENT_MEM_EXE` | setup, upgrade | the agent-mem binary written into hook files. The Docker launcher sets it to itself, since setup runs inside the container |
+| `AGENT_MEM_MODEL_DIR` | search, observer | folder of the embedding and spaCy models instead of `<data>/models`; the Docker image keeps them outside the data volume, so a new image brings new ones |
+| `AGENT_MEM_IN_DOCKER` | viewer, panel, doctor | flag set by the Docker image: login hints name `agent-mem login <agent>` (the fact-writing CLIs live in the container), and `AGENT_MEM_VIEWER_BIND` applies |
+| `AGENT_MEM_VIEWER_BIND` | viewer | address the viewer listens on, only together with `AGENT_MEM_IN_DOCKER` (the image sets `0.0.0.0`; Docker publishes the port to the host's 127.0.0.1 only). Elsewhere the viewer always stays on 127.0.0.1 |
 
 The data folder defaults:
 

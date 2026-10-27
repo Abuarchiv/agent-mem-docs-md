@@ -53,11 +53,21 @@ Copilot passes the event name as an argument (`agent-mem hook copilot sessionSta
 - **`toolArgs`** is an object since CLI 1.0.83 and a JSON string before; both are read.
 - **Hook output limits.** `postToolUse` takes 10 KB, `sessionStart` 10 MiB; agent-mem caps blocks around tools at
   2,400 tokens.
+- **No MCP instructions.** Copilot does not pass an MCP server's instructions to the model, so its briefing has one
+  more line naming `mem_search` and `mem_get`.
+- **Compaction.** Copilot ignores context before compaction and starts no session after it; the essentials come
+  back with the next prompt.
 
 ## The Copilot app
 
 Sessions the app runs in its worktrees (`~/.copilot/copilot-worktrees/<repo>`) are recorded for their repository.
 Plain chats in the app, without a repository, are not recorded.
+
+## Copilot Chat in VS Code
+
+VS Code (1.142) runs the hooks in `~/.copilot/hooks` too, with Claude Code's payloads, and reads context only from
+`hookSpecificOutput`. agent-mem recognizes these calls, leaves out the progress line there, reads the answer from
+VS Code's transcript, and counts the files of `replace_string_in_file` and `multi_replace_string_in_file`.
 
 ## Facts
 
@@ -73,7 +83,7 @@ every plan, including Free, which refuses fixed models; it resolves to GPT-6-Lun
 
 From `~/.copilot/session-state/<id>/events.jsonl`: each `session.usage_record`'s input minus cache reads, plus output.
 
-Tested with Copilot CLI 1.0.96 and the Copilot app 1.1.29 on macOS.
+Tested with Copilot CLI 1.0.103, the Copilot app 1.1.29 on macOS and Copilot Chat in VS Code 1.142.
 
 ---
 

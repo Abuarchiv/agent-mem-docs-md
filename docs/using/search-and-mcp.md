@@ -31,7 +31,6 @@ what it needs, treat recalled text as data, and cite ids.
 | `mem_get(ids)` | read up to 10 entries in full, with provenance and file state | `mem_get(["T41", "M7"])` |
 | `mem_remember(text, kind, title, supersedes, global_scope)` | store a fact, decision, failed attempt or lesson explicitly | `mem_remember("Deploys go through make release", kind="decision")` |
 | `mem_forget(id)` | delete a request or memory of this project | `mem_forget("M7")` |
-
 **mem_search**
 
 ```text

@@ -4,7 +4,6 @@ What happens after each request, what the background model writes, and how stale
 
 Your requests are saved word for word the moment they happen. **Facts** are the short, lasting things worth knowing
 next time, and they are written a little later, in the background, by the CLI of the agent you used.
-
 1. The agent finishes a request. agent-mem closes it and puts it in a queue.
 2. A background process (`agent-mem observe`) starts at low priority. It takes up to five finished requests of one
    session at a time.
@@ -14,7 +13,6 @@ next time, and they are written a little later, in the background, by the CLI of
 5. A second call gives each request a title and a type and updates the session summary: what was learned, what is
    done, what is next. When something went wrong and was fixed, it writes a **lesson**.
 6. The process exits after 90 seconds without new work.
-
 ![The hook records within milliseconds and queues the request; the observer later calls the model and stores facts.](../../assets/diagrams/hook-fast-slow.svg)
 
 <sub>[Excalidraw scene](../../assets/diagrams/hook-fast-slow.excalidraw)</sub>

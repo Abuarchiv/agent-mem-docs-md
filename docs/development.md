@@ -53,6 +53,7 @@ npm run dev          # http://localhost:4321/agent-mem-docs/
 npm run build
 npm run diagrams     # re-render every diagram
 AGENT_MEM_SRC=../agent-mem npm run check   # the coverage check against an agent-mem checkout
+npm run markdown -- ../agent-mem-md         # the same pages as plain Markdown
 ```
 
 ### Diagrams
@@ -69,10 +70,17 @@ renderer in headless Chromium:
 
 Every diagram on the site has an "Open in Excalidraw" link to its scene file.
 
+### Plain Markdown
+
+`scripts/export-markdown.ts` writes the same pages as GitHub Markdown for
+[agent-mem-docs-md](https://github.com/Abuarchiv/agent-mem-docs-md): asides become alerts, tabs bold labels, cards
+lists, diagrams an image with a link to their Excalidraw scene, and every page gets previous/next links.
+
 ### The coverage check
 
 `scripts/check-coverage.ts` reads an agent-mem checkout and fails when the docs miss something the code has: a
 table, a config key, a CLI command or option, an environment variable, an MCP tool, or a hook event of any agent.
+It also compares every config default with the "all defaults" block and the tables.
 CI runs it against the newest agent-mem commit on every push and every day.
 
 ```sh

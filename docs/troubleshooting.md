@@ -120,8 +120,9 @@ the embedder is missing): `agent-mem upgrade --extras semantic observer`.
 <details>
 <summary>OpenCode requests never get facts</summary>
 
-By design: no OpenCode CLI is used for extraction. Add `"ollama"` to `observe.providers`, or set
-`observe.cross_vendor: true` to let another installed CLI take them.
+They go to `opencode run` with the free `opencode/big-pickle` model. Check that `opencode` is on `PATH` for the
+observer and that `agent-mem doctor` does not name it as failing or paused; `observe.opencode_model` picks another
+model. Without OpenCode installed a request is saved word for word.
 
 </details>
 
@@ -159,7 +160,7 @@ Facts work without topic links. Set `observe.entity_model` to the language of yo
 <details>
 <summary>The briefing is too long or too short</summary>
 
-`budgets.session_start` (8,000) sets it. Claude Code receives at most 2,400 tokens per block regardless; Codex
+`budgets.session_start` (800) sets it. Claude Code receives at most 2,400 tokens per block regardless; Codex
 7,800. See [Session briefing](using/briefing.md).
 
 </details>

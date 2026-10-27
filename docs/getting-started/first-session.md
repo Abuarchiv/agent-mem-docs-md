@@ -17,7 +17,6 @@ More: agent-mem search <words> · everything in the browser: http://localhost:37
 ```
 
 Work as usual. agent-mem stays quiet: ordinary prompts and tool calls print nothing. Behind the scenes:
-
 1. Each request opens a **turn** with your prompt.
 2. Each tool call is recorded with its command, files and outcome. A failing test that passes later becomes an
    error-to-fix recipe.
@@ -28,7 +27,6 @@ Work as usual. agent-mem stays quiet: ordinary prompts and tool calls print noth
    ```text
    agent-mem session saved · 2 requests · 1 file · facts are added in the background
    ```
-
 ## Session two: the briefing
 
 The next session in the same project starts with what the first one left:
